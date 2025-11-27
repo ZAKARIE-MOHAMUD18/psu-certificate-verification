@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: psu-backend
+    env: python
+    buildCommand: "pip install -r requirements.txt && python generate_keys.py && python init_db.py"
+    startCommand: "python app.py"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
