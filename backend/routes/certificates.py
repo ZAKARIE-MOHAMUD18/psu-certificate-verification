@@ -10,9 +10,11 @@ import os
 
 bp = Blueprint('certificates', __name__, url_prefix='/api/certificates')
 
-@bp.route('', methods=['POST'])
-@jwt_required()
+@bp.route('', methods=['POST', 'OPTIONS'])
+@jwt_required(optional=True)
 def issue_certificate():
+    if request.method == 'OPTIONS':
+        return '', 200
     data = request.get_json()
     
     # Create or get student
@@ -68,10 +70,16 @@ def issue_certificate():
         'message': 'Certificate issued successfully'
     }), 201
 
-@bp.route('', methods=['GET'])
-@jwt_required()
+@bp.route('', methods=['GET', 'OPTIONS'])
+@jwt_required(optional=True)
 def list_certificates():
-    certificates = db.session.query(Certificate, Student).join(Student).all()
+    if request.method == 'OPTIONS':
+        return '', 200
+    try:
+        certificates = db.session.query(Certificate, Student).join(Student).all()
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({'error': 'Database error', 'details': str(e)}), 500
     
     result = []
     for cert, student in certificates:
