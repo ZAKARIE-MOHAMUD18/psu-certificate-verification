@@ -5,8 +5,10 @@ from models import db
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
-@bp.route('/login', methods=['POST'])
+@bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        return '', 200
     try:
         data = request.get_json()
         if not data:

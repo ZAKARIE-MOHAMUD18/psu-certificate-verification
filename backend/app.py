@@ -19,10 +19,10 @@ db.init_app(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
 CORS(app, 
-     origins=['https://psu-certificate-verification-live.vercel.app', 'http://localhost:5173'],
+     origins=['*'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     allow_headers=['Content-Type', 'Authorization'],
-     supports_credentials=True)
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+     supports_credentials=False)
 
 from routes import auth, certificates
 
@@ -43,19 +43,21 @@ def health():
 
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Requested-With'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    response.headers['Access-Control-Allow-Credentials'] = 'false'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
 
-@app.route('/test-login', methods=['POST', 'OPTIONS'])
+@app.route('/test-login', methods=['GET', 'POST', 'OPTIONS'])
 def test_login():
     if request.method == 'OPTIONS':
         return '', 200
     
     return jsonify({
         'status': 'success',
-        'message': 'Login endpoint is working',
+        'message': f'Login endpoint is working - Method: {request.method}',
         'data': request.get_json() if request.get_json() else 'No data received'
     })
 
