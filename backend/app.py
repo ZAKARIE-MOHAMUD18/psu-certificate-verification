@@ -65,34 +65,47 @@ def test_login():
 def init_database():
     """Initialize database and create admin user"""
     try:
-        with app.app_context():
-            # Create tables
-            db.create_all()
-            
-            # Import here to avoid circular import
-            from models import Admin
-            admin = Admin.query.filter_by(username='admin').first()
-            if not admin:
-                admin = Admin(username='admin')
-                admin.set_password('admin123')
-                db.session.add(admin)
-                db.session.commit()
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Database initialized and admin user created',
-                    'admin': {'username': 'admin', 'password': 'admin123'}
-                })
-            else:
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Database already initialized',
-                    'admin': {'username': 'admin', 'password': 'admin123'}
-                })
+        # Create tables
+        db.create_all()
+        
+        # Import here to avoid circular import
+        from models import Admin
+        admin = Admin.query.filter_by(username='admin').first()
+        if not admin:
+            admin = Admin(username='admin')
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            return jsonify({
+                'status': 'success',
+                'message': 'Database initialized and admin user created',
+                'admin': {'username': 'admin', 'password': 'admin123'}
+            })
+        else:
+            return jsonify({
+                'status': 'success',
+                'message': 'Database already initialized',
+                'admin': {'username': 'admin', 'password': 'admin123'}
+            })
     except Exception as e:
         return jsonify({
             'status': 'error',
             'message': str(e)
         }), 500
+
+# Initialize database on startup
+with app.app_context():
+    try:
+        db.create_all()
+        from models import Admin
+        if not Admin.query.filter_by(username='admin').first():
+            admin = Admin(username='admin')
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print("Admin user created")
+    except Exception as e:
+        print(f"Database initialization error: {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
