@@ -18,7 +18,11 @@ db.init_app(app)
 
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
-CORS(app, origins=['https://psu-certificate-verification-live.vercel.app', 'http://localhost:5173'])
+CORS(app, 
+     origins=['https://psu-certificate-verification-live.vercel.app', 'http://localhost:5173'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization'],
+     supports_credentials=True)
 
 from routes import auth, certificates
 
@@ -36,6 +40,24 @@ def health_check():
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok'})
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+@app.route('/test-login', methods=['POST', 'OPTIONS'])
+def test_login():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    return jsonify({
+        'status': 'success',
+        'message': 'Login endpoint is working',
+        'data': request.get_json() if request.get_json() else 'No data received'
+    })
 
 @app.route('/init-db')
 def init_database():
