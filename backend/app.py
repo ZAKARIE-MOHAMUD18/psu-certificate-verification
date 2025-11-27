@@ -1,5 +1,4 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -13,7 +12,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///psu
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
 
-db = SQLAlchemy(app)
+# Initialize db from models
+from models import db
+db.init_app(app)
+
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
 CORS(app, origins=['https://psu-certificate-verification-live.vercel.app', 'http://localhost:5173'])
@@ -39,28 +41,29 @@ def health():
 def init_database():
     """Initialize database and create admin user"""
     try:
-        # Create tables
-        db.create_all()
-        
-        # Create admin user if not exists
-        from models import Admin
-        admin = Admin.query.filter_by(username='admin').first()
-        if not admin:
-            admin = Admin(username='admin')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            return jsonify({
-                'status': 'success',
-                'message': 'Database initialized and admin user created',
-                'admin': {'username': 'admin', 'password': 'admin123'}
-            })
-        else:
-            return jsonify({
-                'status': 'success',
-                'message': 'Database already initialized',
-                'admin': {'username': 'admin', 'password': 'admin123'}
-            })
+        with app.app_context():
+            # Create tables
+            db.create_all()
+            
+            # Import here to avoid circular import
+            from models import Admin
+            admin = Admin.query.filter_by(username='admin').first()
+            if not admin:
+                admin = Admin(username='admin')
+                admin.set_password('admin123')
+                db.session.add(admin)
+                db.session.commit()
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Database initialized and admin user created',
+                    'admin': {'username': 'admin', 'password': 'admin123'}
+                })
+            else:
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Database already initialized',
+                    'admin': {'username': 'admin', 'password': 'admin123'}
+                })
     except Exception as e:
         return jsonify({
             'status': 'error',

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required
-from models import Certificate, Student, db
+from models import Certificate, Student
+from models import db
 from utils.crypto import sign_certificate, verify_certificate as verify_cert_signature
 from utils.pdf_generator import generate_certificate_pdf
 from utils.qr_generator import generate_qr_code
