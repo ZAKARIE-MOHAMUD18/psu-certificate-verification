@@ -10,11 +10,15 @@ import os
 
 bp = Blueprint('certificates', __name__, url_prefix='/api/certificates')
 
+# ============================================
+# ISSUE CERTIFICATE (PROTECTED)
+# ============================================
 @bp.route('', methods=['POST', 'OPTIONS'])
-@jwt_required(optional=True)
+@jwt_required()
 def issue_certificate():
     if request.method == 'OPTIONS':
         return '', 200
+
     data = request.get_json()
     
     # Create or get student
@@ -35,12 +39,12 @@ def issue_certificate():
         degree=data['degree'],
         program=data['program'],
         issue_date=datetime.strptime(data['issue_date'], '%Y-%m-%d').date(),
-        signature=''  # Will be set after signing
+        signature=''  
     )
     db.session.add(certificate)
     db.session.flush()
     
-    # Generate signature
+    # Payload for signature
     payload = {
         'uuid': certificate.uuid,
         'student_name': f"{student.first_name} {student.last_name}",
@@ -54,7 +58,7 @@ def issue_certificate():
     signature = sign_certificate(payload)
     certificate.signature = signature
     
-    # Generate QR code
+    # Generate QR
     verification_url = f"https://psu-certificate-verification-live.vercel.app/verify/{certificate.uuid}"
     qr_path = generate_qr_code(verification_url, certificate.uuid)
     
@@ -70,8 +74,11 @@ def issue_certificate():
         'message': 'Certificate issued successfully'
     }), 201
 
+# ============================================
+# LIST CERTIFICATES (PROTECTED)
+# ============================================
 @bp.route('', methods=['GET', 'OPTIONS'])
-@jwt_required(optional=True)
+@jwt_required()
 def list_certificates():
     if request.method == 'OPTIONS':
         return '', 200
@@ -97,9 +104,15 @@ def list_certificates():
     
     return jsonify(result)
 
-@bp.route('/<uuid>', methods=['GET'])
+# ============================================
+# GET CERTIFICATE DETAILS (PROTECTED)
+# ============================================
+@bp.route('/<uuid>', methods=['GET', 'OPTIONS'])
 @jwt_required()
 def get_certificate(uuid):
+    if request.method == 'OPTIONS':
+        return '', 200
+
     certificate = Certificate.query.filter_by(uuid=uuid).first()
     if not certificate:
         return jsonify({'error': 'Certificate not found'}), 404
@@ -122,6 +135,9 @@ def get_certificate(uuid):
         'created_at': certificate.created_at.isoformat()
     })
 
+# ============================================
+# VERIFY CERTIFICATE (PUBLIC)
+# ============================================
 @bp.route('/<uuid>/verify', methods=['GET'])
 def verify_certificate(uuid):
     certificate = Certificate.query.filter_by(uuid=uuid).first()
@@ -141,7 +157,6 @@ def verify_certificate(uuid):
     
     student = Student.query.get(certificate.student_id)
     
-    # Verify signature
     payload = {
         'uuid': certificate.uuid,
         'student_name': f"{student.first_name} {student.last_name}",
@@ -173,9 +188,15 @@ def verify_certificate(uuid):
             'message': 'Certificate signature is invalid'
         }), 400
 
-@bp.route('/<uuid>/revoke', methods=['POST'])
+# ============================================
+# REVOKE CERTIFICATE (PROTECTED)
+# ============================================
+@bp.route('/<uuid>/revoke', methods=['POST', 'OPTIONS'])
 @jwt_required()
 def revoke_certificate(uuid):
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     certificate = Certificate.query.filter_by(uuid=uuid).first()
     if not certificate:
         return jsonify({'error': 'Certificate not found'}), 404
@@ -188,6 +209,9 @@ def revoke_certificate(uuid):
     
     return jsonify({'message': 'Certificate revoked successfully'})
 
+# ============================================
+# DOWNLOAD CERTIFICATE PDF (PUBLIC)
+# ============================================
 @bp.route('/<uuid>/download', methods=['GET'])
 def download_certificate(uuid):
     certificate = Certificate.query.filter_by(uuid=uuid).first()
