@@ -16,7 +16,7 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
-CORS(app)
+CORS(app, origins=['https://psu-certificate-verification-live.vercel.app', 'http://localhost:5173'])
 
 from routes import auth, certificates
 

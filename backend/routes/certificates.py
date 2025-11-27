@@ -52,7 +52,7 @@ def issue_certificate():
     certificate.signature = signature
     
     # Generate QR code
-    verification_url = f"https://verify.psu.edu/cert/{certificate.uuid}"
+    verification_url = f"https://psu-certificate-verification-live.vercel.app/verify/{certificate.uuid}"
     qr_path = generate_qr_code(verification_url, certificate.uuid)
     
     # Generate PDF
